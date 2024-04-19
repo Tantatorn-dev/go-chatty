@@ -12,10 +12,10 @@ import (
 type errMsg error
 
 type Model struct {
-	viewport      viewport.Model
-	roomCodeInput textinput.Model
-	roomCode      string
-	err           error
+	viewport  viewport.Model
+	textInput textinput.Model
+	roomCode  string
+	err       error
 }
 
 func InitialModel() Model {
@@ -30,9 +30,9 @@ Please enter room code to enter the chatroom.`)
 	ti.Width = 20
 
 	return Model{
-		viewport:      vp,
-		roomCodeInput: ti,
-		err:           nil,
+		viewport:  vp,
+		textInput: ti,
+		err:       nil,
 	}
 }
 
@@ -42,13 +42,17 @@ func (m Model) Init() tea.Cmd {
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var vpCmd tea.Cmd
-	var codeInputCmd tea.Cmd
+	var textInputCmd tea.Cmd
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.Type {
-		case tea.KeyEnter, tea.KeyCtrlC, tea.KeyEsc:
+		case tea.KeyCtrlC, tea.KeyEsc:
 			return m, tea.Quit
+		case tea.KeyEnter:
+			m.roomCode = m.textInput.Value()
+			m.viewport.SetContent(fmt.Sprintf("Joining room %s...", m.roomCode))
+			m.textInput.Reset()
 		}
 
 	// We handle errors just like any other message
@@ -58,15 +62,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	m.viewport, vpCmd = m.viewport.Update(msg)
-	m.roomCodeInput, codeInputCmd = m.roomCodeInput.Update(msg)
+	m.textInput, textInputCmd = m.textInput.Update(msg)
 
-	return m, tea.Batch(vpCmd, codeInputCmd)
+	return m, tea.Batch(vpCmd, textInputCmd)
 }
 
 func (m Model) View() string {
 	return fmt.Sprintf(
 		"%s\n%s\n",
 		m.viewport.View(),
-		m.roomCodeInput.View(),
+		m.textInput.View(),
 	) + "\n\n"
 }
