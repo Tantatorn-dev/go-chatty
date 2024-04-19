@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"go-chatty/internal/server"
+	"go-chatty/proto"
 	"log"
 	"net"
 
@@ -19,6 +21,10 @@ func main() {
 	}
 
 	s := grpc.NewServer()
+
+	chatServer := server.NewChatServer()
+	proto.RegisterChatProtoServer(s, chatServer)
+
 	log.Printf("server listening at %v", lis.Addr())
 
 	if err := s.Serve(lis); err != nil {
