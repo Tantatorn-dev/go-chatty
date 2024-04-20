@@ -25,6 +25,7 @@ type ChatProtoClient interface {
 	SayHello(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (*HelloResponse, error)
 	JoinRoom(ctx context.Context, in *JoinRoomRequest, opts ...grpc.CallOption) (*JoinRoomResponse, error)
 	SendMessage(ctx context.Context, in *SendMessageRequest, opts ...grpc.CallOption) (*SendMessageResponse, error)
+	GetMessages(ctx context.Context, in *GetMessagesRequest, opts ...grpc.CallOption) (*GetMessagesResponse, error)
 }
 
 type chatProtoClient struct {
@@ -62,6 +63,15 @@ func (c *chatProtoClient) SendMessage(ctx context.Context, in *SendMessageReques
 	return out, nil
 }
 
+func (c *chatProtoClient) GetMessages(ctx context.Context, in *GetMessagesRequest, opts ...grpc.CallOption) (*GetMessagesResponse, error) {
+	out := new(GetMessagesResponse)
+	err := c.cc.Invoke(ctx, "/chat.ChatProto/GetMessages", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ChatProtoServer is the server API for ChatProto service.
 // All implementations must embed UnimplementedChatProtoServer
 // for forward compatibility
@@ -69,6 +79,7 @@ type ChatProtoServer interface {
 	SayHello(context.Context, *HelloRequest) (*HelloResponse, error)
 	JoinRoom(context.Context, *JoinRoomRequest) (*JoinRoomResponse, error)
 	SendMessage(context.Context, *SendMessageRequest) (*SendMessageResponse, error)
+	GetMessages(context.Context, *GetMessagesRequest) (*GetMessagesResponse, error)
 	mustEmbedUnimplementedChatProtoServer()
 }
 
@@ -84,6 +95,9 @@ func (UnimplementedChatProtoServer) JoinRoom(context.Context, *JoinRoomRequest) 
 }
 func (UnimplementedChatProtoServer) SendMessage(context.Context, *SendMessageRequest) (*SendMessageResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SendMessage not implemented")
+}
+func (UnimplementedChatProtoServer) GetMessages(context.Context, *GetMessagesRequest) (*GetMessagesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetMessages not implemented")
 }
 func (UnimplementedChatProtoServer) mustEmbedUnimplementedChatProtoServer() {}
 
@@ -152,6 +166,24 @@ func _ChatProto_SendMessage_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ChatProto_GetMessages_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetMessagesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChatProtoServer).GetMessages(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/chat.ChatProto/GetMessages",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChatProtoServer).GetMessages(ctx, req.(*GetMessagesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ChatProto_ServiceDesc is the grpc.ServiceDesc for ChatProto service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -170,6 +202,10 @@ var ChatProto_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SendMessage",
 			Handler:    _ChatProto_SendMessage_Handler,
+		},
+		{
+			MethodName: "GetMessages",
+			Handler:    _ChatProto_GetMessages_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

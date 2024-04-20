@@ -41,6 +41,16 @@ func (s *ChatServer) SendMessage(ctx context.Context, in *proto.SendMessageReque
 	return &proto.SendMessageResponse{Success: true}, nil
 }
 
+func (s *ChatServer) GetMessages(ctx context.Context, in *proto.GetMessagesRequest) (*proto.GetMessagesResponse, error) {
+	code := in.GetCode()
+
+	if _, ok := chatRooms[code]; !ok {
+		return nil, errors.New("room not found")
+	}
+
+	return &proto.GetMessagesResponse{Messages: chatRooms[code]}, nil
+}
+
 func NewChatServer() *ChatServer {
 	return &ChatServer{}
 }
