@@ -23,6 +23,8 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ChatProtoClient interface {
 	SayHello(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (*HelloResponse, error)
+	JoinRoom(ctx context.Context, in *JoinRoomRequest, opts ...grpc.CallOption) (*JoinRoomResponse, error)
+	SendMessage(ctx context.Context, in *SendMessageRequest, opts ...grpc.CallOption) (*SendMessageResponse, error)
 }
 
 type chatProtoClient struct {
@@ -42,11 +44,31 @@ func (c *chatProtoClient) SayHello(ctx context.Context, in *HelloRequest, opts .
 	return out, nil
 }
 
+func (c *chatProtoClient) JoinRoom(ctx context.Context, in *JoinRoomRequest, opts ...grpc.CallOption) (*JoinRoomResponse, error) {
+	out := new(JoinRoomResponse)
+	err := c.cc.Invoke(ctx, "/chat.ChatProto/JoinRoom", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *chatProtoClient) SendMessage(ctx context.Context, in *SendMessageRequest, opts ...grpc.CallOption) (*SendMessageResponse, error) {
+	out := new(SendMessageResponse)
+	err := c.cc.Invoke(ctx, "/chat.ChatProto/SendMessage", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ChatProtoServer is the server API for ChatProto service.
 // All implementations must embed UnimplementedChatProtoServer
 // for forward compatibility
 type ChatProtoServer interface {
 	SayHello(context.Context, *HelloRequest) (*HelloResponse, error)
+	JoinRoom(context.Context, *JoinRoomRequest) (*JoinRoomResponse, error)
+	SendMessage(context.Context, *SendMessageRequest) (*SendMessageResponse, error)
 	mustEmbedUnimplementedChatProtoServer()
 }
 
@@ -56,6 +78,12 @@ type UnimplementedChatProtoServer struct {
 
 func (UnimplementedChatProtoServer) SayHello(context.Context, *HelloRequest) (*HelloResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SayHello not implemented")
+}
+func (UnimplementedChatProtoServer) JoinRoom(context.Context, *JoinRoomRequest) (*JoinRoomResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method JoinRoom not implemented")
+}
+func (UnimplementedChatProtoServer) SendMessage(context.Context, *SendMessageRequest) (*SendMessageResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SendMessage not implemented")
 }
 func (UnimplementedChatProtoServer) mustEmbedUnimplementedChatProtoServer() {}
 
@@ -88,6 +116,42 @@ func _ChatProto_SayHello_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ChatProto_JoinRoom_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(JoinRoomRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChatProtoServer).JoinRoom(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/chat.ChatProto/JoinRoom",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChatProtoServer).JoinRoom(ctx, req.(*JoinRoomRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ChatProto_SendMessage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SendMessageRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChatProtoServer).SendMessage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/chat.ChatProto/SendMessage",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChatProtoServer).SendMessage(ctx, req.(*SendMessageRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ChatProto_ServiceDesc is the grpc.ServiceDesc for ChatProto service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -98,6 +162,14 @@ var ChatProto_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SayHello",
 			Handler:    _ChatProto_SayHello_Handler,
+		},
+		{
+			MethodName: "JoinRoom",
+			Handler:    _ChatProto_JoinRoom_Handler,
+		},
+		{
+			MethodName: "SendMessage",
+			Handler:    _ChatProto_SendMessage_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
