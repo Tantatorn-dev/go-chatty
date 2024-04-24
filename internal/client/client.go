@@ -1,12 +1,18 @@
 package client
 
 import (
+	"context"
 	"fmt"
+	"go-chatty/proto"
+	"log"
+	"time"
 
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 type errMsg error
@@ -14,7 +20,8 @@ type errMsg error
 type Model struct {
 	viewport  viewport.Model
 	textInput textinput.Model
-	roomCode  string
+	roomCode  *string
+	messages  []string
 	err       error
 }
 
@@ -44,15 +51,38 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var vpCmd tea.Cmd
 	var textInputCmd tea.Cmd
 
+	conn, err := grpc.Dial("localhost:8090", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatalf("did not connect: %v", err)
+	}
+	defer conn.Close()
+
+	c := proto.NewChatProtoClient(conn)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyCtrlC, tea.KeyEsc:
 			return m, tea.Quit
 		case tea.KeyEnter:
-			m.roomCode = m.textInput.Value()
-			m.viewport.SetContent(fmt.Sprintf("Joining room %s...", m.roomCode))
+			code := m.textInput.Value()
+
+			m.roomCode = &code
+			m.viewport.SetContent(fmt.Sprintf("Joining room %s...", code))
+
+			c.JoinRoom(ctx, &proto.JoinRoomRequest{Code: code})
+
+			m.viewport.SetContent(fmt.Sprintf("Joined room %s", code))
+
+			res, _ := c.GetMessages(ctx, &proto.GetMessagesRequest{Code: code})
+
+			m.messages = res.Messages
+
 			m.textInput.Reset()
+			m.textInput.Placeholder = "Type your message here"
 		}
 
 	// We handle errors just like any other message
