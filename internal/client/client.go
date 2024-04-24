@@ -21,7 +21,6 @@ type Model struct {
 	viewport  viewport.Model
 	textInput textinput.Model
 	roomCode  *string
-	messages  []string
 	err       error
 }
 
@@ -68,21 +67,42 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyCtrlC, tea.KeyEsc:
 			return m, tea.Quit
 		case tea.KeyEnter:
-			code := m.textInput.Value()
+			if m.roomCode != nil {
+				msg := m.textInput.Value()
 
-			m.roomCode = &code
-			m.viewport.SetContent(fmt.Sprintf("Joining room %s...", code))
+				c.SendMessage(ctx, &proto.SendMessageRequest{Code: *m.roomCode, Message: msg})
 
-			c.JoinRoom(ctx, &proto.JoinRoomRequest{Code: code})
+				res, _ := c.GetMessages(ctx, &proto.GetMessagesRequest{Code: *m.roomCode})
 
-			m.viewport.SetContent(fmt.Sprintf("Joined room %s", code))
+				var messages string
+				for _, m := range res.Messages {
+					messages += fmt.Sprintf("%s: %s\n", "User", m)
+				}
 
-			res, _ := c.GetMessages(ctx, &proto.GetMessagesRequest{Code: code})
+				m.viewport.SetContent(fmt.Sprintf("Room %s\n\n%s", *m.roomCode, messages))
+				m.textInput.Reset()
+			} else {
+				code := m.textInput.Value()
 
-			m.messages = res.Messages
+				m.viewport.SetContent(fmt.Sprintf("Joining room %s...", code))
 
-			m.textInput.Reset()
-			m.textInput.Placeholder = "Type your message here"
+				c.JoinRoom(ctx, &proto.JoinRoomRequest{Code: code})
+
+				m.roomCode = &code
+
+				res, _ := c.GetMessages(ctx, &proto.GetMessagesRequest{Code: code})
+
+				var messages string
+				for _, m := range res.Messages {
+					messages += fmt.Sprintf("%s: %s\n", "User", m)
+				}
+
+				m.viewport.SetContent(fmt.Sprintf("Room %s\n\n%s", code, messages))
+
+				m.textInput.Reset()
+				m.textInput.Placeholder = "Type your message here"
+			}
+
 		}
 
 	// We handle errors just like any other message
