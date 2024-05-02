@@ -33,7 +33,7 @@ Please enter room code to enter the chatroom.`)
 	ti.Placeholder = "Enter room code"
 	ti.Focus()
 	ti.CharLimit = 156
-	ti.Width = 20
+	ti.Width = 25
 
 	return Model{
 		viewport:  vp,
