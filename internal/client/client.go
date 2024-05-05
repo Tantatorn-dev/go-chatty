@@ -86,13 +86,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				m.viewport.SetContent(fmt.Sprintf("Joining room %s...", code))
 
-				c.SendMessage(ctx, &proto.SendMessageRequest{Code: code, Message: "User joined"})
-
 				m.roomCode = &code
 
-				res, err := c.GetMessages(ctx, &proto.GetMessagesRequest{Code: code})
-
-				log.Println(err)
+				res, _ := c.JoinRoom(ctx, &proto.JoinRoomRequest{Code: code})
 
 				var messages string
 				for _, m := range res.Messages {

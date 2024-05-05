@@ -22,6 +22,7 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ChatProtoClient interface {
+	JoinRoom(ctx context.Context, in *JoinRoomRequest, opts ...grpc.CallOption) (*JoinRoomResponse, error)
 	SendMessage(ctx context.Context, in *SendMessageRequest, opts ...grpc.CallOption) (*SendMessageResponse, error)
 	GetMessages(ctx context.Context, in *GetMessagesRequest, opts ...grpc.CallOption) (*GetMessagesResponse, error)
 }
@@ -32,6 +33,15 @@ type chatProtoClient struct {
 
 func NewChatProtoClient(cc grpc.ClientConnInterface) ChatProtoClient {
 	return &chatProtoClient{cc}
+}
+
+func (c *chatProtoClient) JoinRoom(ctx context.Context, in *JoinRoomRequest, opts ...grpc.CallOption) (*JoinRoomResponse, error) {
+	out := new(JoinRoomResponse)
+	err := c.cc.Invoke(ctx, "/chat.ChatProto/JoinRoom", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *chatProtoClient) SendMessage(ctx context.Context, in *SendMessageRequest, opts ...grpc.CallOption) (*SendMessageResponse, error) {
@@ -56,6 +66,7 @@ func (c *chatProtoClient) GetMessages(ctx context.Context, in *GetMessagesReques
 // All implementations must embed UnimplementedChatProtoServer
 // for forward compatibility
 type ChatProtoServer interface {
+	JoinRoom(context.Context, *JoinRoomRequest) (*JoinRoomResponse, error)
 	SendMessage(context.Context, *SendMessageRequest) (*SendMessageResponse, error)
 	GetMessages(context.Context, *GetMessagesRequest) (*GetMessagesResponse, error)
 	mustEmbedUnimplementedChatProtoServer()
@@ -65,6 +76,9 @@ type ChatProtoServer interface {
 type UnimplementedChatProtoServer struct {
 }
 
+func (UnimplementedChatProtoServer) JoinRoom(context.Context, *JoinRoomRequest) (*JoinRoomResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method JoinRoom not implemented")
+}
 func (UnimplementedChatProtoServer) SendMessage(context.Context, *SendMessageRequest) (*SendMessageResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SendMessage not implemented")
 }
@@ -82,6 +96,24 @@ type UnsafeChatProtoServer interface {
 
 func RegisterChatProtoServer(s grpc.ServiceRegistrar, srv ChatProtoServer) {
 	s.RegisterService(&ChatProto_ServiceDesc, srv)
+}
+
+func _ChatProto_JoinRoom_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(JoinRoomRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChatProtoServer).JoinRoom(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/chat.ChatProto/JoinRoom",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChatProtoServer).JoinRoom(ctx, req.(*JoinRoomRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _ChatProto_SendMessage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -127,6 +159,10 @@ var ChatProto_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "chat.ChatProto",
 	HandlerType: (*ChatProtoServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "JoinRoom",
+			Handler:    _ChatProto_JoinRoom_Handler,
+		},
 		{
 			MethodName: "SendMessage",
 			Handler:    _ChatProto_SendMessage_Handler,

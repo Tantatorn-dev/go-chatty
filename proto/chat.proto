@@ -5,6 +5,7 @@ package chat;
 
 
 service ChatProto {
+  rpc JoinRoom (JoinRoomRequest) returns (JoinRoomResponse) {}
 	rpc SendMessage (SendMessageRequest) returns (SendMessageResponse) {}
 	rpc GetMessages (GetMessagesRequest) returns (GetMessagesResponse) {}
 }
@@ -23,5 +24,13 @@ message GetMessagesRequest {
 }
 
 message GetMessagesResponse {
+  repeated string messages = 1;
+}
+
+message JoinRoomRequest {
+  string code = 1;
+}
+
+message JoinRoomResponse {
   repeated string messages = 1;
 }

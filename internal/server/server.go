@@ -65,6 +65,40 @@ func (s *ChatServer) GetMessages(ctx context.Context, in *proto.GetMessagesReque
 	return &proto.GetMessagesResponse{Messages: messages}, nil
 }
 
+func (s *ChatServer) JoinRoom(ctx context.Context, in *proto.JoinRoomRequest) (*proto.JoinRoomResponse, error) {
+	code := in.GetCode()
+
+	client := getClient()
+
+	// create a new stream
+	client.XAdd(&redis.XAddArgs{
+		Stream: "chat:" + code,
+		Values: map[string]interface{}{"message": "User joined"},
+	})
+
+	// read latest 10 messages
+	cmd := client.XRead(&redis.XReadArgs{
+		Streams: []string{"chat:" + code, "0"},
+		Count:   10,
+		Block:   0,
+	})
+
+	var messages []string
+
+	streams, err := cmd.Result()
+	if err != nil {
+		return nil, fmt.Errorf("failed to read messages: %v", err)
+	}
+
+	for _, st := range streams {
+		for _, message := range st.Messages {
+			messages = append(messages, message.Values["message"].(string))
+		}
+	}
+
+	return &proto.JoinRoomResponse{Messages: messages}, nil
+}
+
 func NewChatServer() *ChatServer {
 	return &ChatServer{}
 }
