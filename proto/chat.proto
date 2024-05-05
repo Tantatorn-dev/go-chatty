@@ -5,26 +5,8 @@ package chat;
 
 
 service ChatProto {
-	rpc SayHello (HelloRequest) returns (HelloResponse) {}
-	rpc JoinRoom (JoinRoomRequest) returns (JoinRoomResponse) {}
 	rpc SendMessage (SendMessageRequest) returns (SendMessageResponse) {}
 	rpc GetMessages (GetMessagesRequest) returns (GetMessagesResponse) {}
-}
-
-message HelloRequest {
-  string name = 1;
-}
-
-message HelloResponse {
-  string message = 1;
-}
-
-message JoinRoomRequest {
-  string code = 1;
-}
-
-message JoinRoomResponse {
-  bool success = 1;
 }
 
 message SendMessageRequest {
