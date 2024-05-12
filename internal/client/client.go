@@ -20,8 +20,11 @@ type errMsg error
 type Model struct {
 	viewport  viewport.Model
 	textInput textinput.Model
-	roomCode  *string
-	err       error
+
+	roomCode *string
+	username string
+
+	err error
 }
 
 func InitialModel() Model {
@@ -35,9 +38,13 @@ Please enter room code to enter the chatroom.`)
 	ti.CharLimit = 156
 	ti.Width = 25
 
+	// random username in format user-1234
+	username := fmt.Sprintf("user-%d", time.Now().Unix()%10000)
+
 	return Model{
 		viewport:  vp,
 		textInput: ti,
+		username:  username,
 		err:       nil,
 	}
 }
@@ -70,13 +77,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.roomCode != nil {
 				msg := m.textInput.Value()
 
-				c.SendMessage(ctx, &proto.SendMessageRequest{Code: *m.roomCode, Message: msg})
+				c.SendMessage(ctx, &proto.SendMessageRequest{Code: *m.roomCode, Msg: &proto.Msg{
+					Message:  msg,
+					Username: m.username,
+				}})
 
 				res, _ := c.GetMessages(ctx, &proto.GetMessagesRequest{Code: *m.roomCode})
 
 				var messages string
 				for _, m := range res.Messages {
-					messages += fmt.Sprintf("%s: %s\n", "User", m)
+					messages += fmt.Sprintf("%s: %s\n", m.Username, m.Message)
 				}
 
 				m.viewport.SetContent(fmt.Sprintf("Room %s\n\n%s", *m.roomCode, messages))
@@ -84,15 +94,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else {
 				code := m.textInput.Value()
 
-				m.viewport.SetContent(fmt.Sprintf("Joining room %s...", code))
+				m.viewport.SetContent(fmt.Sprintf("%s is joining room %s...", m.username, code))
 
 				m.roomCode = &code
 
-				res, _ := c.JoinRoom(ctx, &proto.JoinRoomRequest{Code: code})
+				res, _ := c.JoinRoom(ctx, &proto.JoinRoomRequest{Code: code, Username: m.username})
 
 				var messages string
 				for _, m := range res.Messages {
-					messages += fmt.Sprintf("%s: %s\n", "User", m)
+					messages += fmt.Sprintf("%s: %s\n", m.Username, m.Message)
 				}
 
 				m.viewport.SetContent(fmt.Sprintf("Room %s\n\n%s", code, messages))
