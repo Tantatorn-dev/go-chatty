@@ -32,18 +32,18 @@ type Model struct {
 }
 
 func InitialModel() Model {
+	// random username in format user-1234
+	username := fmt.Sprintf("user-%d", time.Now().Unix()%10000)
+
 	vp := viewport.New(30, 5)
-	vp.SetContent(`Welcome to the chat room!
-Please enter room code to enter the chatroom.`)
+	vp.SetContent(fmt.Sprintf(`Welcome %s to the chat room!
+Please enter room code to enter the chatroom.`, username))
 
 	ti := textinput.New()
 	ti.Placeholder = "Enter room code"
 	ti.Focus()
 	ti.CharLimit = 156
 	ti.Width = 25
-
-	// random username in format user-1234
-	username := fmt.Sprintf("user-%d", time.Now().Unix()%10000)
 
 	ft := viewport.New(40, 5)
 	ft.SetContent("'Ctrl+N': edit username")
@@ -155,8 +155,8 @@ func (m Model) View() string {
 
 func (m *Model) backHome() {
 	m.roomCode = nil
-	m.viewport.SetContent(`Welcome to the chat room!
-Please enter room code to enter the chatroom.`)
+	m.viewport.SetContent(fmt.Sprintf(`Welcome %s to the chat room!
+Please enter room code to enter the chatroom.`, m.username))
 	m.textInput.Reset()
 	m.textInput.Placeholder = "Enter room code"
 	m.textInput.Focus()
