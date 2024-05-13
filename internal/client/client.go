@@ -21,8 +21,12 @@ type Model struct {
 	viewport  viewport.Model
 	textInput textinput.Model
 
+	footer viewport.Model
+
 	roomCode *string
 	username string
+
+	isEditingUsername bool
 
 	err error
 }
@@ -41,11 +45,16 @@ Please enter room code to enter the chatroom.`)
 	// random username in format user-1234
 	username := fmt.Sprintf("user-%d", time.Now().Unix()%10000)
 
+	ft := viewport.New(40, 5)
+	ft.SetContent("'Ctrl+N': edit username")
+
 	return Model{
-		viewport:  vp,
-		textInput: ti,
-		username:  username,
-		err:       nil,
+		viewport:          vp,
+		textInput:         ti,
+		username:          username,
+		footer:            ft,
+		isEditingUsername: false,
+		err:               nil,
 	}
 }
 
@@ -73,8 +82,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.Type {
 		case tea.KeyCtrlC, tea.KeyEsc:
 			return m, tea.Quit
+		case tea.KeyCtrlN:
+			m.isEditingUsername = true
+			m.viewport.SetContent("Enter new username")
+
+			m.textInput.SetValue(m.username)
 		case tea.KeyEnter:
-			if m.roomCode != nil {
+			if m.isEditingUsername {
+				m.username = m.textInput.Value()
+				m.isEditingUsername = false
+
+				m.backHome()
+			} else if m.roomCode != nil {
 				msg := m.textInput.Value()
 
 				c.SendMessage(ctx, &proto.SendMessageRequest{Code: *m.roomCode, Msg: &proto.Msg{
@@ -127,8 +146,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m Model) View() string {
 	return fmt.Sprintf(
-		"%s\n%s\n",
+		"%s\n%s\n\n%s\n",
 		m.viewport.View(),
 		m.textInput.View(),
+		m.footer.View(),
 	) + "\n\n"
+}
+
+func (m *Model) backHome() {
+	m.roomCode = nil
+	m.viewport.SetContent(`Welcome to the chat room!
+Please enter room code to enter the chatroom.`)
+	m.textInput.Reset()
+	m.textInput.Placeholder = "Enter room code"
+	m.textInput.Focus()
 }
