@@ -24,13 +24,13 @@ func getClient() *redis.Client {
 
 func (s *ChatServer) SendMessage(ctx context.Context, in *proto.SendMessageRequest) (*proto.SendMessageResponse, error) {
 	code := in.GetCode()
-	message := in.GetMessage()
+	message := in.GetMsg()
 
 	client := getClient()
 
 	client.XAdd(&redis.XAddArgs{
 		Stream: "chat:" + code,
-		Values: map[string]interface{}{"message": message},
+		Values: map[string]interface{}{"message": message.Message, "username": message.Username},
 	})
 
 	return &proto.SendMessageResponse{Success: true}, nil
@@ -45,11 +45,10 @@ func (s *ChatServer) GetMessages(ctx context.Context, in *proto.GetMessagesReque
 	// read latest 10 messages
 	cmd := client.XRead(&redis.XReadArgs{
 		Streams: []string{"chat:" + code, "0"},
-		Count:   10,
 		Block:   0,
 	})
 
-	var messages []string
+	var messages []*proto.Msg
 
 	streams, err := cmd.Result()
 	if err != nil {
@@ -58,7 +57,10 @@ func (s *ChatServer) GetMessages(ctx context.Context, in *proto.GetMessagesReque
 
 	for _, st := range streams {
 		for _, message := range st.Messages {
-			messages = append(messages, message.Values["message"].(string))
+			messages = append(messages, &proto.Msg{
+				Message:  message.Values["message"].(string),
+				Username: message.Values["username"].(string),
+			})
 		}
 	}
 
@@ -67,23 +69,23 @@ func (s *ChatServer) GetMessages(ctx context.Context, in *proto.GetMessagesReque
 
 func (s *ChatServer) JoinRoom(ctx context.Context, in *proto.JoinRoomRequest) (*proto.JoinRoomResponse, error) {
 	code := in.GetCode()
+	username := in.GetUsername()
 
 	client := getClient()
 
 	// create a new stream
 	client.XAdd(&redis.XAddArgs{
 		Stream: "chat:" + code,
-		Values: map[string]interface{}{"message": "User joined"},
+		Values: map[string]interface{}{"message": "Joined the chat", "username": username},
 	})
 
 	// read latest 10 messages
 	cmd := client.XRead(&redis.XReadArgs{
 		Streams: []string{"chat:" + code, "0"},
-		Count:   10,
 		Block:   0,
 	})
 
-	var messages []string
+	var messages []*proto.Msg
 
 	streams, err := cmd.Result()
 	if err != nil {
@@ -92,7 +94,10 @@ func (s *ChatServer) JoinRoom(ctx context.Context, in *proto.JoinRoomRequest) (*
 
 	for _, st := range streams {
 		for _, message := range st.Messages {
-			messages = append(messages, message.Values["message"].(string))
+			messages = append(messages, &proto.Msg{
+				Message:  message.Values["message"].(string),
+				Username: message.Values["username"].(string),
+			})
 		}
 	}
 

@@ -10,9 +10,14 @@ service ChatProto {
 	rpc GetMessages (GetMessagesRequest) returns (GetMessagesResponse) {}
 }
 
+message Msg {
+  string username = 1;
+  string message = 2;
+}
+
 message SendMessageRequest {
   string code = 1;
-  string message = 2;
+  Msg msg = 2;
 }
 
 message SendMessageResponse {
@@ -24,13 +29,14 @@ message GetMessagesRequest {
 }
 
 message GetMessagesResponse {
-  repeated string messages = 1;
+  repeated Msg messages = 1;
 }
 
 message JoinRoomRequest {
-  string code = 1;
+  string username = 1;
+  string code = 2;
 }
 
 message JoinRoomResponse {
-  repeated string messages = 1;
+  repeated Msg messages = 1;
 }
