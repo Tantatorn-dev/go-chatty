@@ -45,7 +45,6 @@ func (s *ChatServer) GetMessages(ctx context.Context, in *proto.GetMessagesReque
 	// read latest 10 messages
 	cmd := client.XRead(&redis.XReadArgs{
 		Streams: []string{"chat:" + code, "0"},
-		Count:   10,
 		Block:   0,
 	})
 
@@ -83,7 +82,6 @@ func (s *ChatServer) JoinRoom(ctx context.Context, in *proto.JoinRoomRequest) (*
 	// read latest 10 messages
 	cmd := client.XRead(&redis.XReadArgs{
 		Streams: []string{"chat:" + code, "0"},
-		Count:   10,
 		Block:   0,
 	})
 
