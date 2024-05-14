@@ -16,6 +16,7 @@ import (
 )
 
 type errMsg error
+type tickMsg time.Time
 
 type Model struct {
 	viewport  viewport.Model
@@ -27,6 +28,7 @@ type Model struct {
 	username string
 
 	isEditingUsername bool
+	pollInterval      int
 
 	err error
 }
@@ -54,12 +56,16 @@ Please enter room code to enter the chatroom.`, username))
 		username:          username,
 		footer:            ft,
 		isEditingUsername: false,
+		pollInterval:      10,
 		err:               nil,
 	}
 }
 
 func (m Model) Init() tea.Cmd {
-	return textarea.Blink
+	return tea.Batch(
+		textarea.Blink,
+		tick(),
+	)
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -78,6 +84,24 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	defer cancel()
 
 	switch msg := msg.(type) {
+	case tickMsg:
+		if m.pollInterval == 0 {
+			if m.roomCode != nil {
+				res, _ := c.GetMessages(ctx, &proto.GetMessagesRequest{Code: *m.roomCode})
+
+				var messages string
+				for _, m := range res.Messages {
+					messages += fmt.Sprintf("%s: %s\n", m.Username, m.Message)
+				}
+
+				m.viewport.SetContent(fmt.Sprintf("Room %s\n\n%s", *m.roomCode, messages))
+			}
+
+			m.pollInterval = 5
+		} else {
+			m.pollInterval--
+		}
+		return m, tick()
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyCtrlC, tea.KeyEsc:
@@ -160,4 +184,13 @@ Please enter room code to enter the chatroom.`, m.username))
 	m.textInput.Reset()
 	m.textInput.Placeholder = "Enter room code"
 	m.textInput.Focus()
+}
+
+func tick() tea.Cmd {
+	return tea.Tick(
+		time.Second,
+		func(t time.Time) tea.Msg {
+			return tickMsg(t)
+		},
+	)
 }
